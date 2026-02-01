@@ -50,22 +50,31 @@ sudo apt install -y build-essential curl wget git zip unzip htop net-tools
 log_success "Build essentials installed"
 
 ################################################################################
-# Step 2: Python 3.11 Setup
+# Step 2: Python Setup
 ################################################################################
 echo ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "STEP 2: Python 3.11 Installation"
+log_info "STEP 2: Python Installation"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if ! command -v python3.11 &> /dev/null; then
-    log_info "Installing Python 3.11..."
-    sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip
-    log_success "Python 3.11 installed"
+# Check existing Python version
+PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+log_info "Current Python version: $PYTHON_VERSION"
+
+# If Python 3.10 or higher exists, use it
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+    log_warn "Using existing Python 3 version: $PYTHON_VERSION"
 else
-    log_warn "Python 3.11 already installed"
+    log_error "Python 3 not found"
+    exit 1
 fi
 
-python3.11 --version
+# Ensure pip is installed and updated
+sudo apt install -y python3-venv python3-dev python3-pip
+sudo pip3 install --upgrade pip setuptools wheel
+
+$PYTHON_CMD --version
 
 ################################################################################
 # Step 3: MySQL 8.0 Setup
@@ -91,21 +100,27 @@ fi
 mysql --version
 
 ################################################################################
-# Step 4: Node.js 20.x Setup
+# Step 4: Node.js & npm Setup
 ################################################################################
 echo ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "STEP 4: Node.js 20.x Installation"
+log_info "STEP 4: Node.js & npm Setup"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if ! command -v node &> /dev/null; then
-    log_info "Installing Node.js 20.x..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt install -y nodejs
-    log_success "Node.js 20.x installed"
+# Check if npm is already installed
+if command -v npm &> /dev/null; then
+    log_warn "npm already installed"
+    npm --version
 else
-    log_warn "Node.js already installed"
+    log_info "npm not found, installing npm via apt..."
+    sudo apt install -y npm
+    log_success "npm installed"
+    npm --version
 fi
+
+# Update npm to latest version
+log_info "Updating npm to latest version..."
+sudo npm install -g npm@latest
 
 node --version
 npm --version
@@ -131,31 +146,26 @@ fi
 nginx -v
 
 ################################################################################
-# Step 6: Redis Setup
+# Step 6: Optional Redis Setup (Disabled for low-memory VPS)
 ################################################################################
 echo ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "STEP 6: Redis Installation"
+log_info "STEP 6: Cache Service Setup"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if ! command -v redis-server &> /dev/null; then
-    log_info "Installing Redis..."
-    sudo apt install -y redis-server
-    sudo systemctl start redis-server
-    sudo systemctl enable redis-server
-    log_success "Redis installed and started"
-else
-    log_warn "Redis already installed"
-fi
-
-redis-server --version
+# For low-memory VPS, Redis may not be necessary
+# Using file-based caching or database caching instead
+log_warn "⚠️  Redis not installed for low-memory VPS"
+log_info "Using file-based Django caching instead"
+log_info "If you have >1GB free RAM, you can install Redis manually:"
+log_info "   sudo apt install -y redis-server"
 
 ################################################################################
 # Step 7: Supervisor & Gunicorn
 ################################################################################
 echo ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "STEP 7: Supervisor & Gunicorn Installation"
+log_info "STEP 7: Supervisor Installation"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 log_info "Installing Supervisor..."
@@ -164,9 +174,8 @@ sudo systemctl start supervisor
 sudo systemctl enable supervisor
 log_success "Supervisor installed"
 
-log_info "Installing Gunicorn via pip..."
-sudo pip3 install gunicorn
-log_success "Gunicorn installed"
+log_info "Gunicorn will be installed via Python pip during backend setup"
+log_success "Supervisor configured"
 
 ################################################################################
 # Step 8: SSL/TLS with Certbot
@@ -261,9 +270,15 @@ fi
 
 log_info "Cloning repository..."
 sudo git clone "$REPO_URL" /var/www/medicalpromax/repo
+
+# Fix ownership
 sudo chown -R www-data:www-data /var/www/medicalpromax/repo
+sudo chmod -R 755 /var/www/medicalpromax/repo
 
 log_success "Repository cloned"
+
+# Store repository path for other scripts
+echo "$REPO_DIR" | sudo tee /var/www/medicalpromax/.repo_path > /dev/null
 
 ################################################################################
 # Summary

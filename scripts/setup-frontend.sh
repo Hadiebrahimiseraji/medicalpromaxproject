@@ -51,8 +51,13 @@ log_info "STEP 2: Install Node.js dependencies"
 
 cd "$FRONTEND_DIR"
 
-log_info "Running npm install..."
-npm install
+# For low-memory VPS, optimize npm cache and install sequentially
+log_info "Configuring npm for low-memory environment..."
+npm config set legacy-peer-deps true
+npm config set prefer-offline true
+
+log_info "Running npm install (with memory optimization)..."
+NODE_OPTIONS="--max-old-space-size=256" npm install --prefer-offline --no-audit
 
 log_success "Dependencies installed"
 
@@ -88,8 +93,8 @@ log_info "STEP 4: Build Next.js project"
 
 cd "$FRONTEND_DIR"
 
-log_info "Building project..."
-npm run build
+log_info "Building project with memory optimization (this may take 5-10 minutes)..."
+NODE_OPTIONS="--max-old-space-size=256" npm run build
 
 log_success "Build completed"
 
@@ -101,14 +106,14 @@ log_info "STEP 5: Create Supervisor configuration"
 
 sudo tee /etc/supervisor/conf.d/medicalpromax-frontend.conf > /dev/null << EOF
 [program:medicalpromax-frontend]
-command=npm start
+command=$FRONTEND_DIR/node_modules/.bin/next start -p 3000
 directory=$FRONTEND_DIR
 user=www-data
 autostart=true
 autorestart=true
 stopasgroup=true
 killasgroup=true
-environment=NODE_ENV="production"
+environment=NODE_ENV="production",NODE_OPTIONS="--max-old-space-size=256"
 stdout_logfile=/var/log/medicalpromax/frontend-stdout.log
 stderr_logfile=/var/log/medicalpromax/frontend-stderr.log
 EOF

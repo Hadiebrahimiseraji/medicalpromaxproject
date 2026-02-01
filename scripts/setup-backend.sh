@@ -54,7 +54,7 @@ if [ -d "$BACKEND_DIR/venv" ]; then
 else
     log_info "Creating venv..."
     cd "$BACKEND_DIR"
-    python3.11 -m venv venv
+    python3 -m venv venv
     log_success "Virtual environment created"
 fi
 
@@ -68,15 +68,20 @@ log_success "Virtual environment activated"
 echo ""
 log_info "STEP 3: Install Python dependencies"
 
-pip install --upgrade pip setuptools wheel
-pip install Django==4.2.0
-pip install djangorestframework==3.14.0
-pip install django-cors-headers==4.0.0
-pip install djangorestframework-simplejwt==5.2.2
-pip install mysqlclient==2.2.0
-pip install python-decouple==3.8
-pip install gunicorn==20.1.0
-pip install Pillow==10.0.0
+# For low-memory VPS, use single-threaded pip install
+pip install --upgrade pip setuptools wheel --no-cache-dir
+
+log_info "Installing Django and dependencies (this may take a few minutes)..."
+
+# Install packages one by one to reduce memory pressure on low-RAM VPS
+pip install --no-cache-dir Django==4.2.0
+pip install --no-cache-dir djangorestframework==3.14.0
+pip install --no-cache-dir django-cors-headers==4.0.0
+pip install --no-cache-dir djangorestframework-simplejwt==5.2.2
+pip install --no-cache-dir mysqlclient==2.2.0
+pip install --no-cache-dir python-decouple==3.8
+pip install --no-cache-dir gunicorn==20.1.0
+pip install --no-cache-dir Pillow==10.0.0
 
 log_success "Dependencies installed"
 
@@ -141,6 +146,10 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
+
+# For low-memory VPS, use file-based cache instead of Redis
+CACHE_BACKEND=django.core.cache.backends.filebased.FileBasedCache
+CACHE_LOCATION=/var/www/medicalpromax/cache
 
 # Logging
 LOG_LEVEL=INFO
@@ -210,10 +219,11 @@ log_info "STEP 9: Create Supervisor configuration"
 sudo tee /etc/supervisor/conf.d/medicalpromax-backend.conf > /dev/null << EOF
 [program:medicalpromax-backend]
 command=$BACKEND_DIR/venv/bin/gunicorn \
-    --workers 4 \
+    --workers 2 \
     --worker-class sync \
     --bind 127.0.0.1:8000 \
     --timeout 120 \
+    --max-requests 1000 \
     --access-logfile /var/log/medicalpromax/backend-access.log \
     --error-logfile /var/log/medicalpromax/backend-error.log \
     config.wsgi:application
