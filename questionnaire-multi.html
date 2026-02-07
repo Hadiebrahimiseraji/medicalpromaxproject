@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم پرسشنامه پزشکی</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'IRANSans', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .questionnaire-selector {
+            background: white;
+            padding: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .questionnaire-selector label {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+        }
+        .questionnaire-tabs {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            padding: 12px 30px;
+            font-size: 1em;
+            font-weight: 600;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .tab-btn:hover:not(.active) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        .form-container {
+            padding: 30px;
+            display: none;
+            animation: slideUp 0.4s ease-out;
+        }
+        .form-container.active {
+            display: block;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .section {
+            margin-bottom: 35px;
+            padding: 25px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            border-right: 5px solid #667eea;
+        }
+        .section h2 {
+            font-size: 1.6em;
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .section-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .question-group {
+            margin-bottom: 22px;
+        }
+        .question-label {
+            display: block;
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 1em;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+        .option-btn {
+            padding: 12px 15px;
+            font-size: 0.95em;
+            font-weight: 600;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: #333;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .option-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+        .option-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .actions {
+            padding: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            background: #f5f5f5;
+        }
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px 25px;
+            font-size: 1.05em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+        }
+        .btn-reset {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .btn-reset:hover {
+            background: #e0e0e0;
+        }
+        .success-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: #4caf50;
+            color: white;
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 1.3em;
+            font-weight: bold;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        .success-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .info-message {
+            background: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            color: #1976d2;
+            font-size: 0.95em;
+        }
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5em; }
+            .options-grid { grid-template-columns: repeat(2, 1fr); }
+            .section { padding: 15px; }
+            .actions { flex-direction: column; }
+            .btn { min-width: auto; }
+            .questionnaire-tabs { flex-direction: column; width: 100%; }
+            .tab-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span>📋</span>سیستم پرسشنامه پزشکی</h1>
+            <p>انتخاب و تکمیل پرسشنامه</p>
+        </div>
+
+        <div class="questionnaire-selector">
+            <label>انتخاب پرسشنامه:</label>
+            <div class="questionnaire-tabs">
+                <button type="button" class="tab-btn active" data-questionnaire="q1">پرسشنامه اول</button>
+                <button type="button" class="tab-btn" data-questionnaire="q2">پرسشنامه دوم</button>
+            </div>
+        </div>
+
+        <div class="info-message">
+            ℹ️ برای ذخیره: <strong>Ctrl+Enter</strong> | برای پاک کردن: <strong>Ctrl+R</strong>
+        </div>
+
+        <!-- QUESTIONNAIRE 1 -->
+        <form id="form1" class="form-container active" data-questionnaire="q1">
+            <div class="section">
+                <h2><span class="section-number">0</span>اطلاعات شناسایی</h2>
+                <div class="question-group">
+                    <label class="question-label">کد شناسایی</label>
+                    <input type="text" class="q1-field" data-field="code" placeholder="کد شناسایی را وارد کنید" required>
+                </div>
+                <div class="question-group">
+                    <label class="question-label">سن</label>
+                    <input type="number" class="q1-field" data-field="age" min="1" max="120" placeholder="سن را وارد کنید" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="section-number">1</span>سوالات اول</h2>
+                <div class="question-group">
+                    <label class="question-label">سوال 1</label>
+                    <div class="options-grid">
+                        <button type="button" class="option-btn q1-option" data-field="q1_s1" data-value="1">1</button>
+                        <button type="button" class="option-btn q1-option" data-field="q1_s1" data-value="2">2</button>
+                    </div>
+                </div>
+                <div class="question-group">
+                    <label class="question-label">سوال 2</label>
+                    <div class="options-grid">
+                        <button type="button" class="option-btn q1-option" data-field="q1_s2" data-value="1">1</button>
+                        <button type="button" class="option-btn q1-option" data-field="q1_s2" data-value="2">2</button>
+                        <button type="button" class="option-btn q1-option" data-field="q1_s2" data-value="3">3</button>
+                        <button type="button" class="option-btn q1-option" data-field="q1_s2" data-value="4">4</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- QUESTIONNAIRE 2 -->
+        <form id="form2" class="form-container" data-questionnaire="q2">
+            <div class="section">
+                <h2><span class="section-number">0</span>اطلاعات شناسایی - پرسشنامه دوم</h2>
+                <div class="question-group">
+                    <label class="question-label">کد شناسایی</label>
+                    <input type="text" class="q2-field" data-field="code" placeholder="کد شناسایی را وارد کنید" required>
+                </div>
+                <div class="question-group">
+                    <label class="question-label">سن</label>
+                    <input type="number" class="q2-field" data-field="age" min="1" max="120" placeholder="سن را وارد کنید" required>
+                </div>
+                <div class="question-group">
+                    <label class="question-label">تاریخ</label>
+                    <input type="date" class="q2-field" data-field="date" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="section-number">1</span>قسمت ارزیابی</h2>
+                <div class="question-group">
+                    <label class="question-label">میزان رضایت</label>
+                    <div class="options-grid">
+                        <button type="button" class="option-btn q2-option" data-field="q2_s1" data-value="خیلی نرضایت">خیلی نرضایت</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s1" data-value="نرضایت">نرضایت</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s1" data-value="رضایت">رضایت</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s1" data-value="خیلی رضایت">خیلی رضایت</button>
+                    </div>
+                </div>
+
+                <div class="question-group">
+                    <label class="question-label">نظر</label>
+                    <input type="text" class="q2-field" data-field="opinion" placeholder="نظر خود را درج کنید">
+                </div>
+
+                <div class="question-group">
+                    <label class="question-label">سطح کمک</label>
+                    <div class="options-grid">
+                        <button type="button" class="option-btn q2-option" data-field="q2_s2" data-value="کم">کم</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s2" data-value="متوسط">متوسط</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s2" data-value="زیاد">زیاد</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="section-number">2</span>بخش اضافی</h2>
+                <div class="question-group">
+                    <label class="question-label">تعداد جلسات</label>
+                    <input type="number" class="q2-field" data-field="sessions" min="0" placeholder="تعداد جلسات را وارد کنید">
+                </div>
+
+                <div class="question-group">
+                    <label class="question-label">توصیه</label>
+                    <div class="options-grid">
+                        <button type="button" class="option-btn q2-option" data-field="q2_s3" data-value="بله">بله</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s3" data-value="خیر">خیر</button>
+                        <button type="button" class="option-btn q2-option" data-field="q2_s3" data-value="نمی‌دانم">نمی‌دانم</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="actions">
+            <button type="button" class="btn btn-submit" id="submitBtn">💾 ذخیره و ثبت</button>
+            <button type="button" class="btn btn-reset" id="resetBtn">🔄 پاک کردن</button>
+        </div>
+    </div>
+
+    <div class="success-popup" id="successPopup">✓ ذخیره شد!</div>
+
+    <script>
+        let allRecords = [];
+        let currentQuestionnaire = 'q1';
+        let formData = {
+            q1: {},
+            q2: {}
+        };
+
+        // Questionnaire selector
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const questionnaire = this.dataset.questionnaire;
+                switchQuestionnaire(questionnaire);
+            });
+        });
+
+        function switchQuestionnaire(questionnaire) {
+            // Update active button
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-questionnaire="${questionnaire}"]`).classList.add('active');
+
+            // Update active form
+            document.querySelectorAll('.form-container').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById('form' + (questionnaire === 'q1' ? '1' : '2')).classList.add('active');
+
+            currentQuestionnaire = questionnaire;
+
+            // Smooth scroll to top of form
+            document.querySelector('.questionnaire-selector').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Setup handlers for Q1
+        document.querySelectorAll('.q1-option').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const field = this.dataset.field;
+                document.querySelectorAll(`[data-field="${field}"].q1-option`).forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                formData.q1[field] = this.dataset.value;
+            });
+        });
+
+        // Setup handlers for Q2
+        document.querySelectorAll('.q2-option').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const field = this.dataset.field;
+                document.querySelectorAll(`[data-field="${field}"].q2-option`).forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                formData.q2[field] = this.dataset.value;
+            });
+        });
+
+        // Load from localStorage
+        function loadFromStorage() {
+            const stored = localStorage.getItem('questionnaire_records');
+            if (stored) {
+                allRecords = JSON.parse(stored);
+            }
+        }
+
+        // Submit form
+        document.getElementById('submitBtn').addEventListener('click', () => {
+            const activeForm = document.querySelector('.form-container.active');
+            const questionnaire = activeForm.dataset.questionnaire;
+            
+            // Collect form data
+            const record = {
+                timestamp: new Date().toLocaleString('fa-IR'),
+                questionnaire: questionnaire,
+                data: {}
+            };
+
+            activeForm.querySelectorAll('input, textarea').forEach(field => {
+                const fieldName = field.dataset.field;
+                if (fieldName) {
+                    record.data[fieldName] = field.value;
+                }
+            });
+
+            // Add selected options
+            Object.keys(formData[questionnaire]).forEach(key => {
+                record.data[key] = formData[questionnaire][key];
+            });
+
+            allRecords.push(record);
+            localStorage.setItem('questionnaire_records', JSON.stringify(allRecords));
+
+            showSuccess();
+            resetForm();
+        });
+
+        // Reset form
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            resetForm();
+        });
+
+        function resetForm() {
+            const activeForm = document.querySelector('.form-container.active');
+            const questionnaire = activeForm.dataset.questionnaire;
+            
+            activeForm.reset();
+            activeForm.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            formData[questionnaire] = {};
+            activeForm.querySelector('input')?.focus();
+        }
+
+        function showSuccess() {
+            const popup = document.getElementById('successPopup');
+            popup.classList.add('show');
+            setTimeout(() => popup.classList.remove('show'), 2000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('submitBtn').click();
+            }
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                resetForm();
+            }
+        });
+
+        // Initialize
+        loadFromStorage();
+        document.querySelector('input')?.focus();
+    </script>
+</body>
+</html>
